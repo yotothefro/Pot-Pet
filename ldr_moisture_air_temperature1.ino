@@ -1,6 +1,5 @@
 // C++ code
 //
-#include<math.h>
 static int MOISTURE_MIN = 234;
 static int MOISTURE_MAX = 1008;
 int moisture = 0;
@@ -29,7 +28,7 @@ void loop()
   digitalWrite(A0, HIGH);
   delay(10); // Wait for 10 millisecond(s)
   moisture = analogRead(A1);
-  moisture = floor(10000*((moisture - MOISTURE_MIN) / (MOISTURE_MAX - MOISTURE_MIN)) * 100)/10000;
+  moisture = ((moisture - MOISTURE_MIN) / (MOISTURE_MAX - MOISTURE_MIN)) * 100);
   // Turn off the sensor to reduce metal corrosion
   // over time
   digitalWrite(A0, LOW);
