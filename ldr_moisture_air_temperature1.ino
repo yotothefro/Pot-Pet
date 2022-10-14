@@ -2,7 +2,7 @@
 //
 static int MOISTURE_MIN = 234;
 static int MOISTURE_MAX = 1008;
-int moisture = 0;
+float moisture = 0;
 
 int Light = 0;
 
@@ -28,7 +28,7 @@ void loop()
   digitalWrite(A0, HIGH);
   delay(10); // Wait for 10 millisecond(s)
   moisture = analogRead(A1);
-  moisture = ((moisture - MOISTURE_MIN) / (MOISTURE_MAX - MOISTURE_MIN)) * 100);
+  moisture = ((moisture - MOISTURE_MIN) / (MOISTURE_MIN - MOISTURE_MAX)) * 100) + 100;
   // Turn off the sensor to reduce metal corrosion
   // over time
   digitalWrite(A0, LOW);
