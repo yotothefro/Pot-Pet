@@ -1,8 +1,8 @@
 // C++ code
 //
 #include<math.h>
-static int MOISTURE_MIN = 234
-static int MOISTURE_MAX = 1008
+static int MOISTURE_MIN = 234;
+static int MOISTURE_MAX = 1008;
 int moisture = 0;
 
 int Light = 0;
