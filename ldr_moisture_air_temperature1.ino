@@ -28,7 +28,7 @@ void loop()
   digitalWrite(A0, HIGH);
   delay(10); // Wait for 10 millisecond(s)
   moisture = analogRead(A1);
-  moisture = ((moisture - MOISTURE_MIN) / (MOISTURE_MIN - MOISTURE_MAX)) * 100) + 100;
+  moisture = ((moisture - MOISTURE_MIN) / (MOISTURE_MIN - MOISTURE_MAX)) * 80) + 100;
   // Turn off the sensor to reduce metal corrosion
   // over time
   digitalWrite(A0, LOW);
