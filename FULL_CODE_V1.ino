@@ -135,7 +135,7 @@ uint8_t _inverse = OFF;
 ///////////////////////////////////
 
 //////SOIL TEMP CONSTANTS////////
-#define t_dat A2
+const int t_dat A2
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors_temp(&oneWire);
 
@@ -144,8 +144,8 @@ float Fahrenheit=0;
 /////////////////////////////////
 
 /////SOIL MOISTURE CONSTANTS//////
-#define m_pow A5;
-#define m_dat A4;
+const int m_pow A5;
+const int m_dat A4;
 static int MOISTURE_MIN = 234;
 static int MOISTURE_MAX = 1008;
 int moisture = 0;
@@ -161,18 +161,12 @@ int yDirection = 0;
 int switchState = 1;
 /////////////////////////////////
 
-//////////LDR CONSTANTS//////////
+////////////////////////////LDR CONSTANTS//////////////////////////////////
 #define R 10000 //ohm resistance value
-// Parameters
-const int sensorPin = A3; // Pin connected to sensor
-
-//Variables
-int sensorVal; // Analog value from the sensor
+const int ldrPin = A3; // Pin connected to sensor
 int lux; //Lux value
-
-int ldrPin = A0; // select the input pin for LDR
-int sensorValue = 0; // variable to store the value coming from the sensor
-/////////////////////////////////
+int ldrValue = 0; // variable to store the value coming from the sensor
+////////////////////////////////////////////////////////////////////////////
 
 void _write(const uint8_t mode, char data) {
   SPI.beginTransaction(SPISettings(16000000, MSBFIRST, SPI_MODE0));
@@ -229,6 +223,14 @@ void printImage(const char *image) {
   }
 }
 
+int sensorRawToPhys(int raw){
+  // Conversion rule
+  float Vout = float(raw) * (5 / float(1023));// Conversion analog to voltage
+  float RLDR = (R * (5 - Vout))/Vout; // Conversion voltage to resistance
+  int phys=500/(RLDR/1000); // Conversion resitance to lumen
+  return phys;
+}
+
 void setup() {
     Serial.begin(9600);
     ////////////////////////LCD Screen SETUP/////////////////////////////
@@ -248,6 +250,8 @@ void setup() {
     ////////////////////////////////////////////////////////////////////
 
     /////SOIL MOISTURE SETUP/////
+    pinMode(m_pow, OUTPUT);
+    pinMode(m_dat, INPUT);
     /////////////////////////////
     
     /////SOIL TEMP SETUP/////
@@ -265,6 +269,60 @@ void loop() {
   printImage(startup);
   delay(5000);
   clear();
+  
+  //////////MOISTURE READINGS////////
+  // Apply power to the soil moisture sensor
+  digitalWrite(A5, HIGH);
+  delay(10); // Wait for 10 millisecond(s)
+  moisture = analogRead(A4);
+  //  moisture = (((moisture - MOISTURE_MIN) / (MOISTURE_MAX - MOISTURE_MIN)) * 100);
+  // Turn off the sensor to reduce metal corrosion
+  // over time
+  digitalWrite(A5, LOW);
+  Serial.print("Moisture = ");
+  Serial.print(moisture);
+  Serial.print(" %");
+  Serial.println();
+  //////////////////////////////////
+
+  ////////////LDR READINGS////////////
+  ldrVal = analogRead(ldrPin);
+  lux=sensorRawToPhys(ldrVal);
+//  Serial.print("Raw value from sensor= ");
+//  Serial.println(ldrVal); // the analog reading
+  Serial.print("Light = ");
+  Serial.print(lux); // the analog reading
+  Serial.println(" lumen"); // the analog reading
+  delay(20);
+  ////////////////////////////////////
+
+  ///////////TEMPERATURE READINGS///////////////
+  sensors_temp.requestTemperatures(); 
+  Celcius=sensors_temp.getTempCByIndex(0);
+  Serial.print("Temperature = ");
+  Serial.print(Celcius);
+  Serial.println(" C  ");
+  //////////////////////////////////////////////
+               
+  delay(1000); // Wait for 500 millisecond(s)
+  
+  if (!switchState) {
+      Serial.println("Switch pressed");
+  }
+
+  if (xDirection < 480) {
+      Serial.println("Left");
+  } else if (xDirection > 520) {
+      Serial.println("Right");
+  }
+
+  if (yDirection < 480) {
+      Serial.println("Down");
+  } else if (yDirection > 520) {
+      Serial.println("Up");
+  }
+  
+  /*
   cursor(1, 1);  
   printStr("Hello World!!!");
   cursor(3, 2);
@@ -276,7 +334,7 @@ void loop() {
   printStr("Poggers");
   inverse(OFF);
   delay(500000);
-
+  */
   clear();
 
 }
