@@ -1,55 +1,25 @@
 ////////////////////TO DOs////////////////////////////////////////////////
-// IMPLEMENT THE READINGS INTO THE LCD ///////////////////////////////////
-// OPTIMIZE MEMORY USAGE (MOSTLY FOR STRING ARRAYS) //////////////////////
-// TEST WITH ALL OF THE PARTS ATTACHED TO CHECK IF 9V BATTERY IS ENOUGH //
+// IMPLEMENT THE READINGS INTO THE LCD /////////////////////////////////// DONE, STILL NEED TO CHECK IF IT ACTUALLY WORKS WHEN EVERYTHING IS CONNECTED
+// OPTIMIZE MEMORY USAGE (MOSTLY FOR STRING ARRAYS) ////////////////////// WE'LL SEE 
+// TEST WITH ALL OF THE PARTS ATTACHED TO CHECK IF 9V BATTERY IS ENOUGH // WE'LL SEE
 //////////////////////////////////////////////////////////////////////////
-//////CREATED BY ME :))))))))/////////////////////////////////////////////
+//////CREATED BY TOMAS ŠUTAVIČIUS :))))))))/////////////////////////////////////////////
+//////WITH HELP FROM RIM CRUTZEN, THOMAS ILLIG//////////////////////////////////////////
 // REFERENCES : https://www.circuitbasics.com/how-to-setup-ps2-joysticks-on-the-arduino////
 // https://www.electronics-lab.com/project/menu-nokia-5110-lcd-display-arduino/ ///////////
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
+#include <SPI.h>
 
-//////////////////////////////
-//////////DATABASE////////////
-//////////////////////////////
-
-// String menu[4] = {"Fruits", "Herbs", "House Plants", "Vegetables"};
-// String fruits[1][7] = {{"Lemon","27","10","21500","3200","55","50"}};//,
-//                       // {"Blueberry","29","18","10000","2000","55","45"}};
-//                       // {"Strawberry","29","18","10000","5000","55","45"},
-//                       // {"Common Fig","32","-15","21500","3200","65","30"}};
-
-////////TESTS///////                  
-// String test[2][2] = {{"test", "test"}, {"test", "test"}};
-// int array[4][6] = {{27, 10, 21500, 3200, 55, 50},{29, 18, 10000, 200, 55, 45}, {29, 18, 10000, 5000, 55, 45}, {32, -15, 21500, 3200, 65, 30}};
-// String fruits[4] = {"Lemon,27,10,21500,3200,55,50","Blueberry,29,18,10000,2000,55,45", "Strawberry,29,18,10000,5000,55,45", "Common Fig,32,-15,21500,3200,65,30"};
-////////////////////
-
-// String herbs[2][7] = {{"Basil","35","10","21500","3200","60","40"},
-//                       {"Rosemary","27","10","21500","3200","55","45"}};
-//                       // {"Cannabis","30","20","21500","3200","65","55"}};
-
-// String houseplants[2][7] = {{"Lavender","30","18","21500","3200","30","20"},
-//                             // {"Green Prayer Plant","28","12","21500","3200","55","45"},
-//                             {"Orchid","28","12","21500","3200","45","35"}};
-// //                             {"Peace Lilly","28","15","21500","3200","55","45"},
-// //                             {"Evergreen","28","18","21500","3200","55","45"},
-// //                             {"Jade Plant","35","10","21500","3200","20","0"},
-// //                             {"Venus Fly Trap","35","5","21500","3200","100","50"}};
-
-// String vegetables[1][7] = {{"Kale","24","13","10000","5000","95","85"}};//,
-//                           // {"Green Onions","23","12","10000","5000","55","45"},
-//                           // {"Tomato","32","4","21500","3200","60","40"},
-//                           // {"Serrano","30","10","21500","3200","65","45"}};
-
+#define ONE_WIRE_BUS 5
 
 // Array that holds all the sizes of the arrays //
 // Im doing this part manually to avoid a fuck ton of declarations that would use memory //
 int amounts[5] = {4, 4, 3, 4, 1};
 
-// Menu navigations
+// Menu navigations ///////////
 int menuitem = 1;
 int submenu = 0;
 int page = 1;
@@ -59,18 +29,21 @@ volatile boolean up = false;
 volatile boolean down = false;
 volatile boolean middle = false;
 volatile boolean left = false;
+////////////////////////////////
 
-// Joystick pins
+// Joystick pins //////
 const int jx = A0;
 const int jy = A1;
 const int swPin = 12;
+///////////////////////
 
-// Joystick min, mid, max values
+// Joystick min, mid, max values //
 const int jLow = 0;
 const int jHigh = 1023;
 const int jCenter = 607;
+///////////////////////////////////
 
-// Joystick movement tracking
+// Joystick movement tracking //
 int downJoystickState = 0;
 int upJoystickState = 0;  
 int selectJoystickState = 0;
@@ -79,25 +52,71 @@ int lastDownJoystickState = 0;
 int lastSelectJoystickState = 0;
 int lastUpJoystickState = 0;
 int lastLeftJoystickState = 0;
+////////////////////////////////
+
+//////SOIL TEMP CONSTANTS////////
+const int t_dat = A2;
+// OneWire oneWire(ONE_WIRE_BUS);
+// DallasTemperature sensors_temp(&oneWire);
+
+// float Celcius=0;
+// float Fahrenheit=0;
+/////////////////////////////////
+
+/////SOIL MOISTURE CONSTANTS//////
+const int m_pow = A5;
+const int m_dat = A4;
+static int MOISTURE_MIN = 234;
+static int MOISTURE_MAX = 1008;
+//////////////////////////////////
+
+////////////////////////////LDR CONSTANTS//////////////////////////////////
+#define R 10000 //ohm resistance value
+const int ldrPin = A3; // Pin connected to sensor
+// int lux; //Lux value
+// int ldrValue = 0; // variable to store the value coming from the sensor
+////////////////////////////////////////////////////////////////////////////
 
 ///// D/C, SCE, RST /////
 Adafruit_PCD8544 display = Adafruit_PCD8544(8, 10, 6); /// <- THIS TAKES 30% OF DYNAMIC MEMORY ;-;
 /////////////////////////
 
+/// Function that converts LDR values to lumen ///
+int sensorRawToPhys(int raw){
+  // Conversion rule
+  float Vout = float(raw) * (5 / float(1023));// Conversion analog to voltage
+  float RLDR = (R * (5 - Vout))/Vout; // Conversion voltage to resistance
+  int phys=500/(RLDR/1000); // Conversion resitance to lumen
+  return phys;
+}
+//////////////////////////////////////////////////
 
 void setup() {
-
-  pinMode(swPin, INPUT_PULLUP);
-  pinMode(7, OUTPUT);
-
-  digitalWrite(7,HIGH); //Turn Backlight ON
-  
   Serial.begin(9600);
-  
+ 
+  pinMode(swPin, INPUT_PULLUP); // Joystick button setup
+
+
+  // LCD SETUP ///////////////////////////////
+  pinMode(7, OUTPUT); //Set lcd to output
+  digitalWrite(7,HIGH); //Turn Backlight ON
   display.begin();      
   display.setContrast(50); //Set contrast to 50
   display.clearDisplay(); 
-  display.display();  
+  display.display();
+  ////////////////////////////////////////////
+
+  /////SOIL MOISTURE SETUP/////
+  pinMode(m_pow, OUTPUT);
+  pinMode(m_dat, INPUT);
+  /////////////////////////////
+
+  //////LDR SETUP/////////
+  pinMode(ldrPin, INPUT);
+
+  /////SOIL TEMP SETUP/////
+  pinMode(t_dat, INPUT);
+  /////////////////////////
 }
 
 void loop() {
@@ -601,70 +620,92 @@ void drawVegetables(){
   }
 }
 void drawComparisons(){
+  getMoisture();
   display.setTextSize(1);
   display.clearDisplay();
   display.setTextColor(BLACK, WHITE);
   display.setCursor(0, 0);
-  display.print("CURRENT");
-  display.setCursor(50, 0);
+  display.print("LIVE");
+  display.setCursor(45, 0);
   display.print("IDEAL");
   display.drawFastHLine(0,10,83,BLACK);
-  display.drawFastVLine(45, 0, 47, BLACK);
+  display.drawFastVLine(35, 0, 47, BLACK);
 
   /////////////CURRENT READING PRINTINGS/////////////
   display.setCursor(0, 15);
-  display.print("read1");
+  display.print(getTemp() + "C");
   display.setCursor(0, 25);
-  display.print("read2");
+  display.print(getLight() + "lm");
   display.setCursor(0, 35);
-  display.print("read3");
+  display.print(getMoisture() + "%");
   
   /////////////IDEAL READING PRINTINGS///////////////
   //// We have lastpage which tells us what groups we need to choose the plants from ////
   //// We also have the menu item which tells us which plant exactly it is ////
-  //// I REALLY DON'T LIKE HOW I DID THIS SO IF SOMEONE CAN MAKE IT LOOK NICER THAT WOULD BE PRETTY COOL////
   if (lastPage == 2){
-    String items[][7] ={{"Lemon","27","10","21500","3200","55","50"},
-                        {"Blueberry","29","18","10000","2000","55","45"},
-                        {"Strawberry","29","18","10000","5000","55","45"},
-                        {"Common Fig","32","-15","21500","3200","65","30"}};
-    display.setCursor(52, 15);
+    String items[][7] ={{"Lemon","27","10","21.5k","3.2k","55","50"},
+                        {"Blueberry","29","18","10k","2k","55","45"},
+                        {"Strawberry","29","18","10k","5k","55","45"},
+                        {"Common Fig","32","-15","21.5k","3.2k","65","30"}};
+    display.setCursor(40, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(52, 25);
+    display.setCursor(40, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(52, 35);
+    display.setCursor(40, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   } else if (lastPage == 3){
-    String items[][7] = {{"Basil","35","10","21500","3200","60","40"},
-                          {"Rosemary","27","10","21500","3200","55","45"},
-                          {"Cannabis","30","20","21500","3200","65","55"}};
-    display.setCursor(52, 15);
+    String items[][7] = {{"Basil","35","10","21.5k","3.2k","60","40"},
+                          {"Rosemary","27","10","21.5k","3.2k","55","45"},
+                          {"Cannabis","30","20","21.5k","3.2k","65","55"}};
+    display.setCursor(40, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(52, 25);
+    display.setCursor(40, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(52, 35);
+    display.setCursor(40, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   } else if (lastPage == 4){
-    String items[][7] = {{"Lavender","30","18","21500","3200","30","20"},
-                          {"Orchid","28","12","21500","3200","45","35"},
-                          {"Peace Lilly","28","15","21500","3200","55","45"},
-                          {"Evergreen","28","18","21500","3200","55","45"}};
-    display.setCursor(52, 15);
+    String items[][7] = {{"Lavender","30","18","21.5k","3.2k","30","20"},
+                          {"Orchid","28","12","21.5k","3.2k","45","35"},
+                          {"Peace Lilly","28","15","21.5k","3.2k","55","45"},
+                          {"Evergreen","28","18","21.k","3.2k","55","45"}};
+    display.setCursor(40, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(52, 25);
+    display.setCursor(40, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(52, 35);
+    display.setCursor(40, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   } else if (lastPage == 5){
-    String items[][7] = {{"Kale","24","13","10000","5000","95","85"}};//,
+    String items[][7] = {{"Kale","24","13","10k","5k","95","85"}};//,
                               // {"Green Onions","23","12","10000","5000","55","45"},
                               // {"Tomato","32","4","21500","3200","60","40"},
                               // {"Serrano","30","10","21500","3200","65","45"}};
-    display.setCursor(52, 15);
+    display.setCursor(40, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(52, 25);
+    display.setCursor(40, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(52, 35);
+    display.setCursor(40, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   }
+}
+
+int getMoisture(){
+  digitalWrite(m_pow, HIGH);
+  delay(10); // Wait for 10 millisecond(s)
+  float moisture = analogRead(m_dat);
+  moisture = (((moisture - MOISTURE_MIN) / (MOISTURE_MIN - MOISTURE_MAX)) * 70) + 100;
+  // Turn off the sensor to reduce metal corrosion
+  // over time
+  digitalWrite(m_pow, LOW);
+  return floor(moisture);
+}
+int getTemp(){
+  float temp = analogRead(t_dat);
+  temp = (temp * 0.48828125)-49.5;
+  return floor(temp);
+}
+int getLight(){
+  int ldrValue = analogRead(ldrPin);
+  return sensorRawToPhys(ldrValue);
+  // analogWrite(3, map(light, 0, 1023, 0, 225));
+  // return light;
 }
