@@ -11,19 +11,26 @@
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
-#include <SPI.h>
+// #include <SPI.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
-#define ONE_WIRE_BUS 5
+
+#define ONE_WIRE_BUS 4
 
 // Array that holds all the sizes of the arrays //
 // Im doing this part manually to avoid a fuck ton of declarations that would use memory //
-int amounts[5] = {4, 4, 3, 4, 1};
+byte amounts[5] = {4, 4, 3, 4, 1};
+
+// LED PINS //
+byte greenLED = 2;
+byte redLED = 3;
 
 // Menu navigations ///////////
-int menuitem = 1;
-int submenu = 0;
-int page = 1;
-int lastPage = 1;
+byte menuitem = 1;
+byte submenu = 0;
+byte page = 1;
+byte lastPage = 1;
 
 volatile boolean up = false;
 volatile boolean down = false;
@@ -34,30 +41,30 @@ volatile boolean left = false;
 // Joystick pins //////
 const int jx = A0;
 const int jy = A1;
-const int swPin = 12;
+const byte swPin = 12;
 ///////////////////////
 
 // Joystick min, mid, max values //
-const int jLow = 0;
+const byte jLow = 0;
 const int jHigh = 1023;
 const int jCenter = 607;
 ///////////////////////////////////
 
 // Joystick movement tracking //
-int downJoystickState = 0;
-int upJoystickState = 0;  
-int selectJoystickState = 0;
-int leftJoystickState = 0;          
-int lastDownJoystickState = 0;
-int lastSelectJoystickState = 0;
-int lastUpJoystickState = 0;
-int lastLeftJoystickState = 0;
+byte downJoystickState = 0;
+byte upJoystickState = 0;  
+byte selectJoystickState = 0;
+byte leftJoystickState = 0;          
+byte lastDownJoystickState = 0;
+byte lastSelectJoystickState = 0;
+byte lastUpJoystickState = 0;
+byte lastLeftJoystickState = 0;
 ////////////////////////////////
 
 //////SOIL TEMP CONSTANTS////////
-const int t_dat = A2;
-// OneWire oneWire(ONE_WIRE_BUS);
-// DallasTemperature sensors_temp(&oneWire);
+// const int t_dat = A2;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors_temp(&oneWire);
 
 // float Celcius=0;
 // float Fahrenheit=0;
@@ -66,7 +73,7 @@ const int t_dat = A2;
 /////SOIL MOISTURE CONSTANTS//////
 const int m_pow = A5;
 const int m_dat = A4;
-static int MOISTURE_MIN = 234;
+static byte MOISTURE_MIN = 234;
 static int MOISTURE_MAX = 1008;
 //////////////////////////////////
 
@@ -93,9 +100,21 @@ int sensorRawToPhys(int raw){
 
 void setup() {
   Serial.begin(9600);
- 
+
+  // display.setRotation(90); inverses the display
+
   pinMode(swPin, INPUT_PULLUP); // Joystick button setup
 
+  // LED SETUP //////////////
+  pinMode(redLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
+  ///////////////////////////
+
+
+  // Turn red lcd on to show power ///
+  // Make sure the resistors are connected
+  // digitalWrite(redLCD, HIGH);
+  ////////////////////////////////////
 
   // LCD SETUP ///////////////////////////////
   pinMode(7, OUTPUT); //Set lcd to output
@@ -115,7 +134,8 @@ void setup() {
   pinMode(ldrPin, INPUT);
 
   /////SOIL TEMP SETUP/////
-  pinMode(t_dat, INPUT);
+  // pinMode(t_dat, INPUT);
+  sensors_temp.begin();
   /////////////////////////
 }
 
@@ -284,6 +304,7 @@ if (page == 2 || page == 3 || page == 4 || page == 5){
 if (page == 6){
   if (left){
     left = false;
+    digitalWrite(m_pow, LOW);
     page = lastPage;
   }
   if (middle){
@@ -620,16 +641,17 @@ void drawVegetables(){
   }
 }
 void drawComparisons(){
-  getMoisture();
+
+  // getMoisture();
   display.setTextSize(1);
   display.clearDisplay();
   display.setTextColor(BLACK, WHITE);
   display.setCursor(0, 0);
   display.print("LIVE");
-  display.setCursor(45, 0);
+  display.setCursor(40, 0);
   display.print("IDEAL");
   display.drawFastHLine(0,10,83,BLACK);
-  display.drawFastVLine(35, 0, 47, BLACK);
+  display.drawFastVLine(25, 0, 47, BLACK);
 
   /////////////CURRENT READING PRINTINGS/////////////
   display.setCursor(0, 15);
@@ -638,6 +660,9 @@ void drawComparisons(){
   display.print(getLight() + "lm");
   display.setCursor(0, 35);
   display.print(getMoisture() + "%");
+  // Serial.print(getTemp());
+
+
   
   /////////////IDEAL READING PRINTINGS///////////////
   //// We have lastpage which tells us what groups we need to choose the plants from ////
@@ -647,65 +672,70 @@ void drawComparisons(){
                         {"Blueberry","29","18","10k","2k","55","45"},
                         {"Strawberry","29","18","10k","5k","55","45"},
                         {"Common Fig","32","-15","21.5k","3.2k","65","30"}};
-    display.setCursor(40, 15);
+    display.setCursor(30, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(40, 25);
+    display.setCursor(30, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(40, 35);
+    display.setCursor(30, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   } else if (lastPage == 3){
     String items[][7] = {{"Basil","35","10","21.5k","3.2k","60","40"},
                           {"Rosemary","27","10","21.5k","3.2k","55","45"},
                           {"Cannabis","30","20","21.5k","3.2k","65","55"}};
-    display.setCursor(40, 15);
+    display.setCursor(30, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(40, 25);
+    display.setCursor(30, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(40, 35);
+    display.setCursor(30, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   } else if (lastPage == 4){
     String items[][7] = {{"Lavender","30","18","21.5k","3.2k","30","20"},
                           {"Orchid","28","12","21.5k","3.2k","45","35"},
                           {"Peace Lilly","28","15","21.5k","3.2k","55","45"},
                           {"Evergreen","28","18","21.k","3.2k","55","45"}};
-    display.setCursor(40, 15);
+    display.setCursor(30, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(40, 25);
+    display.setCursor(30, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(40, 35);
+    display.setCursor(30, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   } else if (lastPage == 5){
     String items[][7] = {{"Kale","24","13","10k","5k","95","85"}};//,
                               // {"Green Onions","23","12","10000","5000","55","45"},
                               // {"Tomato","32","4","21500","3200","60","40"},
                               // {"Serrano","30","10","21500","3200","65","45"}};
-    display.setCursor(40, 15);
+    display.setCursor(30, 15);
     display.print(items[menuitem-1][2] + "-" + items[menuitem-1][1]);
-    display.setCursor(40, 25);
+    display.setCursor(30, 25);
     display.print(items[menuitem-1][4] + "-" + items[menuitem-1][3]);
-    display.setCursor(40, 35);
+    display.setCursor(30, 35);
     display.print(items[menuitem-1][6] + "-" + items[menuitem-1][5]);
   }
 }
 
-int getMoisture(){
+String getMoisture(){
   digitalWrite(m_pow, HIGH);
   delay(10); // Wait for 10 millisecond(s)
   float moisture = analogRead(m_dat);
-  moisture = (((moisture - MOISTURE_MIN) / (MOISTURE_MIN - MOISTURE_MAX)) * 70) + 100;
+  moisture = (((moisture - MOISTURE_MIN) / (MOISTURE_MIN - MOISTURE_MAX)) * 70) + 100; //EDIT THIS FORMULA TO CHANGE THE RANGE
+  return String(int(moisture));
+  // Serial.println("moisture:   ");
+  // Serial.print(moisture);
   // Turn off the sensor to reduce metal corrosion
   // over time
-  digitalWrite(m_pow, LOW);
-  return floor(moisture);
 }
-int getTemp(){
-  float temp = analogRead(t_dat);
-  temp = (temp * 0.48828125)-49.5;
-  return floor(temp);
+String getTemp(){
+  sensors_temp.requestTemperatures(); 
+  int temp=sensors_temp.getTempCByIndex(0);
+  return String(temp);
 }
-int getLight(){
-  int ldrValue = analogRead(ldrPin);
-  return sensorRawToPhys(ldrValue);
+String getLight(){
+  // int ldrValue = analogRead(ldrPin);
+  int ldrValue = sensorRawToPhys(analogRead(ldrPin)) * 20;
+  // Serial.println(ldrValue);
+  return String(ldrValue);
   // analogWrite(3, map(light, 0, 1023, 0, 225));
   // return light;
+  // TODO FIX LDR
+  // RETURN IN STRING FORMAT WITH "xx.xk" instead of 2,500 it should be 2.5k
 }
