@@ -1,9 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 //////CREATED BY TOMAS ŠUTAVIČIUS :))))))))////////////////////////////////////////////////
 //////WITH HELP FROM RIM CRUTZEN, THOMAS ILLIG/////////////////////////////////////////////
-// REFERENCES : https://www.circuitbasics.com/how-to-setup-ps2-joysticks-on-the-arduino////
-// https://www.electronics-lab.com/project/menu-nokia-5110-lcd-display-arduino/ ///////////
-///////////////////////////////////////////////////////////////////////////////////////////
+// REFERENCES : https://www.circuitbasics.com/how-to-setup-ps2-joysticks-on-the-arduino//////////////////////////////////////////////////////
+// USED THIS SOURCE AS THE BASIS FOR THE WHOLE CODE: https://www.electronics-lab.com/project/menu-nokia-5110-lcd-display-arduino/ ///////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_PCD8544.h>
@@ -17,9 +17,9 @@
 // Im doing this part manually to avoid a fuck ton of declarations that would use memory //
 byte amounts[5] = {4, 4, 3, 4, 1};
 
-// LED PINS //
-byte greenLED = 2;
-byte redLED = 3;
+// LED PINS // NOT USED SINCE WE DIDN'T ADD THE LEDS IN TIME
+// byte greenLED = 2;
+// byte redLED = 3;
 
 // Menu navigations ///////////
 byte menuitem = 1;
@@ -97,9 +97,9 @@ void setup() {
 
   pinMode(swPin, INPUT_PULLUP); // Joystick button setup
 
-  // LED SETUP //////////////
-  pinMode(redLED, OUTPUT);
-  pinMode(greenLED, OUTPUT);
+  // LED SETUP ////////////// NOT USED SINCE WE DIDN'T ADD THE LEDS IN TIME
+//   pinMode(redLED, OUTPUT);
+//   pinMode(greenLED, OUTPUT);
   ///////////////////////////
 
   // LCD SETUP ///////////////////////////////
@@ -132,8 +132,6 @@ void loop() {
   int xDir = analogRead(jx);
   int yDir = analogRead(jy);
   boolean switchState = digitalRead(swPin);
-  //Serial.println("x-direction is " + jx);
-  //Serial.println("y-direction is " + jy);
   ///////////////////////////////////////////////
 
   ////CONVERTING JOYSTICK ANALOG VALUES INTO A USABLE DIGITAL VALUE////
@@ -170,6 +168,7 @@ void loop() {
 // Essentially, since the screen can only hold 3 menu items per frame, we have different if statements ensuring that cycling through the menu is circular
 // meaning that going up from the first item will lead you to the final item and the inverse. Also checks if the button is pressed on a menu item so we can
 // move to a different page. Aiming the joystick left sends us back to a previous page.
+// THIS WAS ADAPTED FROM HERE https://www.electronics-lab.com/project/menu-nokia-5110-lcd-display-arduino AND MADE A BIT EASIER TO UNDERSTAND AND FUNCTION
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 if (page == 1){
     if (menuitem == 1){
@@ -312,6 +311,7 @@ submenu = menuitem / 4; // <-- SUPER DUPER IMPORTANT
 // The functions bellow check each direction and button to see if anything has been done to the joystick. ////////////
 // An action is only registered when the joystick is returned to the original position. //////////////////////////////
 // NOTE : I THINK IT WOULD BE PRETTY EASY TO MAKE IT NOT HAVE TO DO THAT SO YOU COULD JUST HOLD IT IN ONE DIRECTION //
+// SOURCE: https://www.electronics-lab.com/project/menu-nokia-5110-lcd-display-arduino ///////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void checkIfDownJoystick()
 {
@@ -378,6 +378,7 @@ void checkIfSelectJoystick()
 // we can just take the modulus of the menuitem to know that every 4th item will be in the 1st position, every 5th item will be in the 2nd position, etc.
 // Similarly, we chose what plants to print by referring to the different arrays that each group has and using the submenu variable which represent the amount
 // of times that we have gone down a page. In lamen terms, when submenu = 1, it means that we have gone from a page with [1, 2, 3] to [4, 5, 6].
+// INSPIRED BY THE MENU PRINTING SYSTEM IN https://www.electronics-lab.com/project/menu-nokia-5110-lcd-display-arduino 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   void drawMenu(){
 
